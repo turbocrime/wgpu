@@ -1671,7 +1671,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                 let mut emitter = Emitter::default();
                 emitter.start(&ctx.function.expressions);
 
-                self.call(
+                let _ = self.call(
                     stmt.span,
                     function,
                     arguments,

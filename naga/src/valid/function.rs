@@ -1188,16 +1188,15 @@ impl super::Validator {
                     function,
                     ref arguments,
                     result,
-                } => {
-                    stages &= self
-                        .validate_call(function, arguments, result, context)
-                        .or_else(|error| {
-                            return Err(error.and_then(|error| {
-                                FunctionError::InvalidCall { function, error }
-                                    .with_span_static(span, "invalid function call")
-                            }));
-                        })?;
-                }
+                } => match self.validate_call(function, arguments, result, context) {
+                    Ok(callee_stages) => stages &= callee_stages,
+                    Err(error) => {
+                        return Err(error.and_then(|error| {
+                            FunctionError::InvalidCall { function, error }
+                                .with_span_static(span, "invalid function call")
+                        }))
+                    }
+                },
                 S::Atomic {
                     pointer,
                     ref fun,
@@ -1558,7 +1557,6 @@ impl super::Validator {
                 }
             }
         }
-
         Ok(BlockInfo { stages, finished })
     }
 
@@ -1570,8 +1568,6 @@ impl super::Validator {
         let base_expression_count = self.valid_expression_list.len();
         let info = self.validate_block_impl(statements, context)?;
         for handle in self.valid_expression_list.drain(base_expression_count..) {
-            //let expr = &context.expressions[handle];
-            //eprintln!("valid_expression_set remove {handle:?} {expr:?}");
             self.valid_expression_set.remove(handle);
         }
         Ok(info)
@@ -1714,10 +1710,9 @@ impl super::Validator {
         }
 
         if self.flags.contains(super::ValidationFlags::BLOCKS) {
-            let body = &fun.body;
             let stages = self
                 .validate_block(
-                    body,
+                    &fun.body,
                     &BlockContext::new(fun, module, &info, &mod_info.functions),
                 )?
                 .stages;
