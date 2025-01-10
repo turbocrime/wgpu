@@ -783,7 +783,8 @@ const FEATURES_MAPPING: [(wgt::Features, webgpu_sys::GpuFeatureName); 12] = [
 ];
 
 fn map_wgt_features(supported_features: webgpu_sys::GpuSupportedFeatures) -> wgt::Features {
-    let mut features = wgt::Features::empty();
+    // We emulate MDI.
+    let mut features = wgt::Features::MULTI_DRAW_INDIRECT;
     for (wgpu_feat, web_feat) in FEATURES_MAPPING {
         match wasm_bindgen::JsValue::from(web_feat).as_string() {
             Some(value) if supported_features.has(&value) => features |= wgpu_feat,
@@ -1461,7 +1462,7 @@ impl dispatch::InterfaceTypes for ContextWebGpu {
 }
 
 impl dispatch::InstanceInterface for ContextWebGpu {
-    fn new(_desc: crate::InstanceDescriptor) -> Self
+    fn new(_desc: &crate::InstanceDescriptor) -> Self
     where
         Self: Sized,
     {
@@ -1561,6 +1562,40 @@ impl dispatch::InstanceInterface for ContextWebGpu {
     fn poll_all_devices(&self, _force_wait: bool) -> bool {
         // Devices are automatically polled.
         true
+    }
+
+    #[cfg(feature = "wgsl")]
+    fn wgsl_language_features(&self) -> crate::WgslLanguageFeatures {
+        let mut wgsl_language_features = crate::WgslLanguageFeatures::empty();
+        if let Some(gpu) = &self.gpu {
+            gpu.wgsl_language_features()
+                .keys()
+                .into_iter()
+                .map(|wlf| wlf.expect("`WgslLanguageFeatures` elements should be valid"))
+                .map(|wlf| {
+                    wlf.as_string()
+                        .expect("`WgslLanguageFeatures` should be string set")
+                })
+                .filter_map(|wlf| match wlf.as_str() {
+                    "readonly_and_readwrite_storage_textures" => {
+                        Some(crate::WgslLanguageFeatures::ReadOnlyAndReadWriteStorageTextures)
+                    }
+                    "packed_4x8_integer_dot_product" => {
+                        Some(crate::WgslLanguageFeatures::Packed4x8IntegerDotProduct)
+                    }
+                    "unrestricted_pointer_parameters" => {
+                        Some(crate::WgslLanguageFeatures::UnrestrictedPointerParameters)
+                    }
+                    "pointer_composite_access" => {
+                        Some(crate::WgslLanguageFeatures::PointerCompositeAccess)
+                    }
+                    _ => None,
+                })
+                .for_each(|wlf| {
+                    wgsl_language_features |= wlf;
+                })
+        }
+        wgsl_language_features
     }
 }
 

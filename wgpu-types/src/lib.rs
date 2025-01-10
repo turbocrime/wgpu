@@ -405,6 +405,17 @@ bitflags::bitflags! {
         // Native Features:
         //
 
+        /// Allows shaders to use f32 atomic load, store, add, sub, and exchange.
+        ///
+        /// Supported platforms:
+        /// - Metal (with MSL 3.0+ and Apple7+/Mac2)
+        /// - Vulkan (with [VK_EXT_shader_atomic_float])
+        ///
+        /// This is a native only feature.
+        ///
+        /// [VK_EXT_shader_atomic_float]: https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_EXT_shader_atomic_float.html
+        const SHADER_FLOAT32_ATOMIC = 1 << 19;
+
         // The features starting with a ? are features that might become part of the spec or
         // at the very least we can implement as native features; since they should cover all
         // possible formats and capabilities across backends.
@@ -638,12 +649,17 @@ bitflags::bitflags! {
         ///
         /// Allows multiple indirect calls to be dispatched from a single buffer.
         ///
-        /// Supported platforms:
+        /// Natively Supported Platforms:
         /// - DX12
         /// - Vulkan
-        /// - Metal on Apple3+ or Mac1+ (Emulated on top of `draw_indirect` and `draw_indexed_indirect`)
         ///
-        /// This is a native only feature.
+        /// Emulated Platforms:
+        /// - Metal
+        /// - OpenGL
+        /// - WebGPU
+        ///
+        /// Emulation is preformed by looping over the individual indirect draw calls in the backend. This is still significantly
+        /// faster than enulating it yourself, as wgpu only does draw call validation once.
         ///
         /// [`RenderPass::multi_draw_indirect`]: ../wgpu/struct.RenderPass.html#method.multi_draw_indirect
         /// [`RenderPass::multi_draw_indexed_indirect`]: ../wgpu/struct.RenderPass.html#method.multi_draw_indexed_indirect
@@ -942,6 +958,16 @@ bitflags::bitflags! {
         /// [VK_GOOGLE_display_timing]: https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_GOOGLE_display_timing.html
         /// [`Surface::as_hal()`]: https://docs.rs/wgpu/latest/wgpu/struct.Surface.html#method.as_hal
         const VULKAN_GOOGLE_DISPLAY_TIMING = 1 << 62;
+
+        /// Allows using the [VK_KHR_external_memory_win32] Vulkan extension.
+        ///
+        /// Supported platforms:
+        /// - Vulkan (with [VK_KHR_external_memory_win32])
+        ///
+        /// This is a native only feature.
+        ///
+        /// [VK_KHR_external_memory_win32]: https://registry.khronos.org/vulkan/specs/latest/man/html/VK_KHR_external_memory_win32.html
+        const VULKAN_EXTERNAL_MEMORY_WIN32 = 1 << 63;
     }
 }
 
@@ -949,7 +975,7 @@ impl Features {
     /// Mask of all features which are part of the upstream WebGPU standard.
     #[must_use]
     pub const fn all_webgpu_mask() -> Self {
-        Self::from_bits_truncate(0xFFFFF)
+        Self::from_bits_truncate(0x7FFFF)
     }
 
     /// Mask of all features that are only available when targeting native (not web).
@@ -1182,7 +1208,10 @@ pub struct Limits {
     /// The maximum allowed number of color attachments.
     pub max_color_attachments: u32,
     /// The maximum number of bytes necessary to hold one sample (pixel or subpixel) of render
-    /// pipeline output data, across all color attachments.
+    /// pipeline output data, across all color attachments as described by [`TextureFormat::target_pixel_byte_cost`]
+    /// and [`TextureFormat::target_component_alignment`]. Defaults to 32. Higher is "better".
+    ///
+    /// ⚠️ `Rgba8Unorm`/`Rgba8Snorm`/`Bgra8Unorm`/`Bgra8Snorm` are deceptively 8 bytes per sample. ⚠️
     pub max_color_attachment_bytes_per_sample: u32,
     /// Maximum number of bytes used for workgroup memory in a compute entry point. Defaults to
     /// 16384. Higher is "better".
@@ -1743,7 +1772,7 @@ pub enum ShaderModel {
 
 /// Supported physical device types.
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum DeviceType {
     /// Other or Unknown.
@@ -1761,7 +1790,7 @@ pub enum DeviceType {
 //TODO: convert `vendor` and `device` to `u32`
 
 /// Information about an adapter.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AdapterInfo {
     /// Adapter name
@@ -3765,6 +3794,9 @@ impl TextureFormat {
         }
     }
 
+    /// The largest number that can be returned by [`Self::target_pixel_byte_cost`].
+    pub const MAX_TARGET_PIXEL_BYTE_COST: u32 = 16;
+
     /// The number of bytes occupied per pixel in a color attachment
     /// <https://gpuweb.github.io/gpuweb/#render-target-pixel-byte-cost>
     #[must_use]
@@ -3790,11 +3822,13 @@ impl TextureFormat {
             | Self::R32Uint
             | Self::R32Sint
             | Self::R32Float => Some(4),
+            // Despite being 4 bytes per pixel, these are 8 bytes per pixel in the table
             Self::Rgba8Unorm
             | Self::Rgba8UnormSrgb
             | Self::Rgba8Snorm
             | Self::Bgra8Unorm
             | Self::Bgra8UnormSrgb
+            // ---
             | Self::Rgba16Uint
             | Self::Rgba16Sint
             | Self::Rgba16Unorm
@@ -3807,6 +3841,7 @@ impl TextureFormat {
             | Self::Rgb10a2Unorm
             | Self::Rg11b10Ufloat => Some(8),
             Self::Rgba32Uint | Self::Rgba32Sint | Self::Rgba32Float => Some(16),
+            // ⚠️ If you add formats with larger sizes, make sure you change `MAX_TARGET_PIXEL_BYTE_COST`` ⚠️
             Self::Stencil8
             | Self::Depth16Unorm
             | Self::Depth24Plus
@@ -7675,7 +7710,9 @@ pub enum Dx12Compiler {
         dxil_path: PathBuf,
     },
     /// The statically-linked variant of Dxc.
-    /// The `static-dxc` feature is required to use this.
+    ///
+    /// The `static-dxc` feature is required for this setting to be used successfully on DX12.
+    /// Not available on `windows-aarch64-pc-*` targets.
     StaticDxc,
 }
 
@@ -7699,7 +7736,7 @@ pub enum Gles3MinorVersion {
 }
 
 /// Options for creating an instance.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InstanceDescriptor {
     /// Which `Backends` to enable.
     pub backends: Backends,

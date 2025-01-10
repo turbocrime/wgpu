@@ -8,6 +8,7 @@ mod regression {
     mod issue_5553;
     mod issue_6317;
     mod issue_6467;
+    mod issue_6827;
 }
 
 mod bgra8unorm_storage;
@@ -18,6 +19,7 @@ mod buffer;
 mod buffer_copy;
 mod buffer_usages;
 mod clear_texture;
+mod cloneable_types;
 mod compute_pass_ownership;
 mod create_surface_error;
 mod device;

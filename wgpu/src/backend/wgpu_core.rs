@@ -767,7 +767,7 @@ impl InterfaceTypes for ContextWgpuCore {
 }
 
 impl dispatch::InstanceInterface for ContextWgpuCore {
-    fn new(desc: wgt::InstanceDescriptor) -> Self
+    fn new(desc: &wgt::InstanceDescriptor) -> Self
     where
         Self: Sized,
     {
@@ -810,12 +810,13 @@ impl dispatch::InstanceInterface for ContextWgpuCore {
             },
         }?;
 
-        Ok(dispatch::DispatchSurface::Core(CoreSurface {
+        Ok(CoreSurface {
             context: self.clone(),
             id,
             configured_device: Mutex::default(),
             error_sink: Mutex::default(),
-        }))
+        }
+        .into())
     }
 
     fn request_adapter(
@@ -849,6 +850,18 @@ impl dispatch::InstanceInterface for ContextWgpuCore {
             Ok(all_queue_empty) => all_queue_empty,
             Err(err) => self.handle_error_fatal(err, "Instance::poll_all_devices"),
         }
+    }
+
+    #[cfg(feature = "wgsl")]
+    fn wgsl_language_features(&self) -> crate::WgslLanguageFeatures {
+        wgc::naga::front::wgsl::ImplementedLanguageExtension::all()
+            .iter()
+            .copied()
+            .fold(
+                crate::WgslLanguageFeatures::empty(),
+                #[allow(unreachable_code)]
+                |acc, wle| acc | match wle {},
+            )
     }
 }
 
@@ -1154,7 +1167,7 @@ impl dispatch::DeviceInterface for CoreDevice {
                     }
                     BindingResource::AccelerationStructure(acceleration_structure) => {
                         bm::BindingResource::AccelerationStructure(
-                            acceleration_structure.inner.as_core().id,
+                            acceleration_structure.shared.inner.as_core().id,
                         )
                     }
                 },
@@ -2451,14 +2464,14 @@ impl dispatch::CommandEncoderInterface for CoreCommandEncoder {
                 }
             };
             wgc::ray_tracing::BlasBuildEntry {
-                blas_id: e.blas.shared.inner.as_core().id,
+                blas_id: e.blas.inner.as_core().id,
                 geometries,
             }
         });
 
         let tlas = tlas.into_iter().map(|e: &crate::TlasBuildEntry<'a>| {
             wgc::ray_tracing::TlasBuildEntry {
-                tlas_id: e.tlas.inner.as_core().id,
+                tlas_id: e.tlas.shared.inner.as_core().id,
                 instance_buffer_id: e.instance_buffer.inner.as_core().id,
                 instance_count: e.instance_count,
             }
@@ -2501,7 +2514,7 @@ impl dispatch::CommandEncoderInterface for CoreCommandEncoder {
                 }
             };
             wgc::ray_tracing::BlasBuildEntry {
-                blas_id: e.blas.shared.inner.as_core().id,
+                blas_id: e.blas.inner.as_core().id,
                 geometries,
             }
         });
@@ -2514,14 +2527,14 @@ impl dispatch::CommandEncoderInterface for CoreCommandEncoder {
                     instance
                         .as_ref()
                         .map(|instance| wgc::ray_tracing::TlasInstance {
-                            blas_id: instance.blas.inner.as_core().id,
+                            blas_id: instance.blas.as_core().id,
                             transform: &instance.transform,
                             custom_index: instance.custom_index,
                             mask: instance.mask,
                         })
                 });
             wgc::ray_tracing::TlasPackage {
-                tlas_id: e.tlas.inner.as_core().id,
+                tlas_id: e.tlas.shared.inner.as_core().id,
                 instances: Box::new(instances),
                 lowest_unmodified: e.lowest_unmodified,
             }
