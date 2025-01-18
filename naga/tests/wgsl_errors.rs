@@ -2104,6 +2104,24 @@ fn use_me(a: i32) -> i32 {
 }
 
 #[test]
+fn struct_member_must_use() {
+    check(
+        r#"
+struct S {
+  @must_use a: i32,
+}
+"#,
+        r#"error: unknown attribute: `must_use`
+  ┌─ wgsl:3:4
+  │
+3 │   @must_use a: i32,
+  │    ^^^^^^^^ unknown attribute
+
+"#,
+    )
+}
+
+#[test]
 fn function_param_redefinition_as_param() {
     check(
         "

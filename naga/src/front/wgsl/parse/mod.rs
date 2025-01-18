@@ -2468,8 +2468,6 @@ impl Parser {
             (ParsedAttribute::default(), ParsedAttribute::default());
         let mut id = ParsedAttribute::default();
 
-        // TODO:
-        // - reject on non-function declarations
         let mut must_use: ParsedAttribute<Span> = ParsedAttribute::default();
 
         let mut dependencies = FastIndexSet::default();
