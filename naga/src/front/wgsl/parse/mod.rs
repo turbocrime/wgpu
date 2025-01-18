@@ -2390,16 +2390,14 @@ impl Parser {
                 binding,
                 must_use,
             })
+        } else if let Some(must_use) = must_use {
+            return Err(Error::FunctionMustUseNothing(
+                must_use,
+                self.pop_rule_span(lexer).until(&lexer.next().1),
+            ));
         } else {
             None
         };
-
-        if result.is_none() && must_use.is_some() {
-            return Err(Error::FunctionMustUseNothing(
-                must_use.unwrap(),
-                self.pop_rule_span(lexer).until(&lexer.next().1),
-            ));
-        }
 
         // do not use `self.block` here, since we must not push a new scope
         lexer.expect(Token::Paren('{'))?;
