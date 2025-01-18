@@ -2093,7 +2093,7 @@ fn use_me(a: i32) -> i32 {
   return 10;
 }
 "#,
-        r#"error: repeated attribute: 'must_use'
+        r#"error: repeated attribute: `must_use`
   ┌─ wgsl:3:2
   │
 3 │ @must_use
