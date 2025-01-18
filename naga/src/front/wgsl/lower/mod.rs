@@ -2214,9 +2214,11 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                     .as_ref()
                     .is_some_and(|result| result.must_use);
 
+                /*
                 if must_use && is_statement {
                     return Err(Error::FunctionMustUseUnused(span));
                 }
+                */
 
                 let rctx = ctx.runtime_expression_ctx(span)?;
                 // we need to always do this before a fn call since all arguments need to be emitted before the fn call

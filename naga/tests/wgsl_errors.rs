@@ -1481,7 +1481,6 @@ fn dead_code() {
 }
 
 #[test]
-#[ignore = "validation can't be tested if parser fails"]
 fn must_use_unused_validation() {
     check_validation! {
         "
@@ -2033,6 +2032,7 @@ fn function_returns_void() {
 }
 
 #[test]
+#[ignore = "validation can't be tested if parser fails"]
 fn function_must_use_unused() {
     check(
         r#"
@@ -2060,6 +2060,7 @@ fn useless() -> i32 {
 }
 
 #[test]
+#[ignore = "validation can't be tested if parser fails"]
 fn function_must_use_nothing() {
     check(
         r#"

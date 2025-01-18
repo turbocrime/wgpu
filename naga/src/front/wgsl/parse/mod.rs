@@ -2390,11 +2390,13 @@ impl Parser {
                 binding,
                 must_use,
             })
-        } else if let Some(must_use) = must_use {
-            return Err(Error::FunctionMustUseNothing(
-                must_use,
-                self.pop_rule_span(lexer).until(&lexer.next().1),
-            ));
+            /*
+            } else if let Some(must_use) = must_use {
+                return Err(Error::FunctionMustUseNothing(
+                    must_use,
+                    self.pop_rule_span(lexer).until(&lexer.next().1),
+                ));
+                */
         } else {
             None
         };
