@@ -24,7 +24,6 @@
             result: Some((
                 ty: 0,
                 binding: None,
-                must_use: true,
             )),
             local_variables: [],
             expressions: [
@@ -44,7 +43,6 @@
             result: Some((
                 ty: 0,
                 binding: None,
-                must_use: false,
             )),
             local_variables: [],
             expressions: [
@@ -69,7 +67,6 @@
             result: Some((
                 ty: 0,
                 binding: None,
-                must_use: false,
             )),
             local_variables: [
                 (
@@ -112,7 +109,6 @@
             result: Some((
                 ty: 0,
                 binding: None,
-                must_use: false,
             )),
             local_variables: [],
             expressions: [

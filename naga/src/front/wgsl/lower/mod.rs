@@ -919,7 +919,10 @@ impl Components {
 
 /// An `ast::GlobalDecl` for which we have built the Naga IR equivalent.
 enum LoweredGlobalDecl {
-    Function(Handle<crate::Function>),
+    Function {
+        handle: Handle<crate::Function>,
+        must_use: bool,
+    },
     Var(Handle<crate::GlobalVariable>),
     Const(Handle<crate::Constant>),
     Override(Handle<crate::Override>),
@@ -1259,7 +1262,6 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                 Ok(crate::FunctionResult {
                     ty,
                     binding: self.binding(&res.binding, ty, ctx)?,
-                    must_use: res.must_use,
                 })
             })
             .transpose()?;
@@ -1351,7 +1353,10 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
             Ok(LoweredGlobalDecl::EntryPoint)
         } else {
             let handle = ctx.module.functions.append(function, span);
-            Ok(LoweredGlobalDecl::Function(handle))
+            Ok(LoweredGlobalDecl::Function {
+                handle,
+                must_use: f.result.as_ref().is_some_and(|res| res.must_use),
+            })
         }
     }
 
@@ -1920,7 +1925,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                     LoweredGlobalDecl::Override(handle) => {
                         Typed::Plain(crate::Expression::Override(handle))
                     }
-                    LoweredGlobalDecl::Function(_)
+                    LoweredGlobalDecl::Function { .. }
                     | LoweredGlobalDecl::Type(_)
                     | LoweredGlobalDecl::EntryPoint => {
                         return Err(Error::Unexpected(span, ExpectedToken::Variable));
@@ -2185,7 +2190,10 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                 | &LoweredGlobalDecl::Var(_),
             ) => Err(Error::Unexpected(function_span, ExpectedToken::Function)),
             Some(&LoweredGlobalDecl::EntryPoint) => Err(Error::CalledEntryPoint(function_span)),
-            Some(&LoweredGlobalDecl::Function(function)) => {
+            Some(&LoweredGlobalDecl::Function {
+                handle: function,
+                must_use,
+            }) => {
                 let arguments = arguments
                     .iter()
                     .enumerate()
@@ -2210,10 +2218,6 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                     .collect::<Result<Vec<_>, _>>()?;
 
                 let has_result = ctx.module.functions[function].result.is_some();
-                let must_use = ctx.module.functions[function]
-                    .result
-                    .as_ref()
-                    .is_some_and(|result| result.must_use);
 
                 if must_use && is_statement {
                     return Err(Error::FunctionMustUseUnused(function_span));

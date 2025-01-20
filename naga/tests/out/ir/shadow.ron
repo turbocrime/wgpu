@@ -587,7 +587,6 @@
             result: Some((
                 ty: 0,
                 binding: None,
-                must_use: false,
             )),
             local_variables: [],
             expressions: [
@@ -1270,7 +1269,6 @@
                         interpolation: None,
                         sampling: None,
                     )),
-                    must_use: false,
                 )),
                 local_variables: [],
                 expressions: [

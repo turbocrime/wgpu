@@ -104,7 +104,6 @@
             result: Some((
                 ty: 0,
                 binding: None,
-                must_use: false,
             )),
             local_variables: [],
             expressions: [
@@ -147,7 +146,6 @@
             result: Some((
                 ty: 0,
                 binding: None,
-                must_use: false,
             )),
             local_variables: [],
             expressions: [
@@ -236,7 +234,6 @@
             result: Some((
                 ty: 4,
                 binding: None,
-                must_use: false,
             )),
             local_variables: [],
             expressions: [
@@ -318,7 +315,6 @@
                     binding: Some(BuiltIn(Position(
                         invariant: false,
                     ))),
-                    must_use: false,
                 )),
                 local_variables: [],
                 expressions: [

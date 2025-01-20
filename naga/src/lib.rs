@@ -2158,27 +2158,6 @@ pub struct FunctionResult {
     /// For entry points, the result has to have a binding
     /// unless it's a structure.
     pub binding: Option<Binding>,
-    /// Functions annotated `@must_use` will require the caller to use the
-    /// result value.
-    pub must_use: bool,
-}
-
-impl FunctionResult {
-    pub const fn new(ty: Handle<Type>) -> Self {
-        Self {
-            ty,
-            binding: None,
-            must_use: false,
-        }
-    }
-
-    pub const fn bound(ty: Handle<Type>, binding: Option<Binding>) -> Self {
-        Self {
-            ty,
-            binding,
-            must_use: false,
-        }
-    }
 }
 
 /// A function defined in the module.

@@ -1542,7 +1542,6 @@
             result: Some((
                 ty: 5,
                 binding: None,
-                must_use: false,
             )),
             local_variables: [],
             expressions: [
@@ -1577,7 +1576,6 @@
             result: Some((
                 ty: 5,
                 binding: None,
-                must_use: false,
             )),
             local_variables: [],
             expressions: [
@@ -1711,7 +1709,6 @@
             result: Some((
                 ty: 0,
                 binding: None,
-                must_use: false,
             )),
             local_variables: [],
             expressions: [
@@ -1787,7 +1784,6 @@
             result: Some((
                 ty: 0,
                 binding: None,
-                must_use: false,
             )),
             local_variables: [],
             expressions: [
@@ -1873,7 +1869,6 @@
                     binding: Some(BuiltIn(Position(
                         invariant: false,
                     ))),
-                    must_use: false,
                 )),
                 local_variables: [
                     (
@@ -2174,7 +2169,6 @@
                         interpolation: Some(Perspective),
                         sampling: Some(Center),
                     )),
-                    must_use: false,
                 )),
                 local_variables: [],
                 expressions: [

@@ -639,7 +639,6 @@
                 result: Some((
                     ty: 24,
                     binding: None,
-                    must_use: false,
                 )),
                 local_variables: [],
                 expressions: [
