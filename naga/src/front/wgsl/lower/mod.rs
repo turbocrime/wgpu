@@ -2167,12 +2167,13 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
         ctx: &mut ExpressionContext<'source, '_, '_>,
         is_statement: bool,
     ) -> Result<Option<Handle<crate::Expression>>, Error<'source>> {
+        let function_span = function.span;
         match ctx.globals.get(function.name) {
             Some(&LoweredGlobalDecl::Type(ty)) => {
                 let handle = self.construct(
                     span,
                     &ast::ConstructorType::Type(ty),
-                    function.span,
+                    function_span,
                     arguments,
                     ctx,
                 )?;
@@ -2182,8 +2183,8 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                 &LoweredGlobalDecl::Const(_)
                 | &LoweredGlobalDecl::Override(_)
                 | &LoweredGlobalDecl::Var(_),
-            ) => Err(Error::Unexpected(function.span, ExpectedToken::Function)),
-            Some(&LoweredGlobalDecl::EntryPoint) => Err(Error::CalledEntryPoint(function.span)),
+            ) => Err(Error::Unexpected(function_span, ExpectedToken::Function)),
+            Some(&LoweredGlobalDecl::EntryPoint) => Err(Error::CalledEntryPoint(function_span)),
             Some(&LoweredGlobalDecl::Function(function)) => {
                 let arguments = arguments
                     .iter()
@@ -2215,7 +2216,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                     .is_some_and(|result| result.must_use);
 
                 if must_use && is_statement {
-                    return Err(Error::FunctionMustUseUnused(span));
+                    return Err(Error::FunctionMustUseUnused(function_span));
                 }
 
                 let rctx = ctx.runtime_expression_ctx(span)?;
@@ -2244,7 +2245,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                 Ok(result)
             }
             None => {
-                let span = function.span;
+                let span = function_span;
                 let expr = if let Some(fun) = conv::map_relational_fun(function.name) {
                     let mut args = ctx.prepare_args(arguments, 1, span);
                     let argument = self.expression(args.next()?, ctx)?;

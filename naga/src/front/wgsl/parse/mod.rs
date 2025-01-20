@@ -2391,9 +2391,9 @@ impl Parser {
                 must_use,
             })
         } else if let Some(must_use) = must_use {
-            return Err(Error::FunctionMustUseNothing(
+            return Err(Error::FunctionMustUseReturnsVoid(
                 must_use,
-                self.pop_rule_span(lexer).until(&lexer.next().1),
+                self.peek_rule_span(lexer),
             ));
         } else {
             None

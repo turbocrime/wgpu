@@ -17,3 +17,7 @@ fn use_assign_let() -> i32 {
     let q = use_me();
     return q;
 }
+
+fn use_phony_assign() {
+    _ = use_me();
+}
